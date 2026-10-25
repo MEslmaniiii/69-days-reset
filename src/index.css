@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-sage-50 text-sage-900 antialiased;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+.dark body {
+  @apply bg-[#12161a] text-sage-100;
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-sage-300/60 rounded-full;
+}
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-sage-700/60;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Reusable surface card */
+.card {
+  @apply bg-white/80 dark:bg-white/[0.04] backdrop-blur border border-sage-200/70 dark:border-white/[0.06] rounded-2xl shadow-sm;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors;
+}
+.btn-primary {
+  @apply btn bg-sage-600 text-white hover:bg-sage-700 disabled:opacity-50;
+}
+.btn-ghost {
+  @apply btn text-sage-700 dark:text-sage-200 hover:bg-sage-100 dark:hover:bg-white/5;
+}
+
+.field {
+  @apply w-full rounded-xl border border-sage-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sage-400/50;
+}
+
+.label {
+  @apply block text-xs font-medium uppercase tracking-wide text-sage-500 dark:text-sage-400 mb-1.5;
+}
