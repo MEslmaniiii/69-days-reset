@@ -1,191 +1,244 @@
-// ---- Core domain types for 69 Days Reset ----
+// ---- Core domain types for "Build Your Reset" ----
+// A fully generic, multi-user, AI-personalized habit system.
+// (The previous Mohamed-specific model now lives as an example preset.)
 
 export type Theme = 'light' | 'dark' | 'system'
-
-export type NutritionMode = 'simple' | 'detailed'
-
-export type MealType = 'breakfast' | 'snack' | 'lunch' | 'dinner'
 
 /** 0 = Sunday ... 6 = Saturday (matches JS Date.getDay) */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
-export interface MealSuggestions {
-  breakfast: string[]
-  snack: string[]
-  dinner: string[]
+/**
+ * daily  = every day
+ * weekly = X times per week (weeklyTarget), any days
+ * custom = specific weekdays (days[])
+ */
+export type HabitFrequency = 'daily' | 'weekly' | 'custom'
+
+export type HabitCategory =
+  | 'health'
+  | 'fitness'
+  | 'nutrition'
+  | 'sleep'
+  | 'spirituality'
+  | 'learning'
+  | 'language'
+  | 'career'
+  | 'business'
+  | 'money'
+  | 'content'
+  | 'reading'
+  | 'productivity'
+  | 'relationships'
+  | 'other'
+
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'flexible'
+
+export const CATEGORY_LABELS: Record<HabitCategory, string> = {
+  health: 'Health',
+  fitness: 'Fitness',
+  nutrition: 'Nutrition',
+  sleep: 'Sleep',
+  spirituality: 'Spirituality',
+  learning: 'Learning',
+  language: 'Language',
+  career: 'Career',
+  business: 'Business',
+  money: 'Money',
+  content: 'Content',
+  reading: 'Reading',
+  productivity: 'Productivity',
+  relationships: 'Relationships',
+  other: 'Other',
 }
 
-export interface Settings {
-  name: string
-  challengeName: string
-  startDate: string // ISO yyyy-mm-dd
-  endDate: string // ISO yyyy-mm-dd
-  /** Which weekdays are workout days */
-  workoutDays: Weekday[]
-  // Quran plan
-  startingSurah: number // 1..114
-  startingAyah: number
-  dailyAyahTarget: number
-  // Walking
-  walkingBaseMinutes: number
-  // Nutrition
-  proteinTargetMin: number
-  proteinTargetMax: number
-  waterTargetMl: number
-  nutritionMode: NutritionMode
-  /** Relative weights for the Overall Lifestyle score (normalized when combined). */
-  coreWeight: number
-  nutritionWeight: number
-  mealSuggestions: MealSuggestions
-  theme: Theme
+export const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as HabitCategory[]
+
+/** Goal categories presented in onboarding (maps loosely to habit categories). */
+export interface GoalCategoryOption {
+  key: HabitCategory
+  label: string
+  emoji: string
 }
 
-/** The six core habits + bonus. Keys are stable ids. */
-export interface Habits {
-  fajrMosque: boolean
-  adhkar: boolean
-  quranWird: boolean
-  workout: boolean
-  hifz: boolean
-  murajaah: boolean
-}
+export const GOAL_CATEGORIES: GoalCategoryOption[] = [
+  { key: 'health', label: 'Health & Fitness', emoji: '🏃' },
+  { key: 'fitness', label: 'Muscle Building', emoji: '💪' },
+  { key: 'nutrition', label: 'Nutrition', emoji: '🥗' },
+  { key: 'sleep', label: 'Sleep', emoji: '😴' },
+  { key: 'spirituality', label: 'Quran / Spirituality', emoji: '🕌' },
+  { key: 'learning', label: 'Learning', emoji: '📚' },
+  { key: 'language', label: 'Languages', emoji: '🗣️' },
+  { key: 'career', label: 'Career', emoji: '📈' },
+  { key: 'business', label: 'Business', emoji: '🚀' },
+  { key: 'money', label: 'Money', emoji: '💰' },
+  { key: 'content', label: 'Content Creation', emoji: '🎥' },
+  { key: 'reading', label: 'Reading', emoji: '📖' },
+  { key: 'productivity', label: 'Productivity', emoji: '⚡' },
+  { key: 'relationships', label: 'Relationships / Family', emoji: '❤️' },
+  { key: 'other', label: 'Other', emoji: '✨' },
+]
 
-export interface BonusHabits {
-  script: boolean
-}
-
-export interface Walking {
-  minutes: number
-  distanceKm?: number
-  steps?: number
-}
-
-export interface Listening {
-  surah?: string
-  reciter?: string
-  minutes?: number
-}
-
-/** The manually-checked nutrition items. Water is derived from waterMl vs target. */
-export interface NutritionChecklist {
-  breakfast: boolean
-  snack: boolean
-  lunch: boolean
-  dinner: boolean
-  protein: boolean // simple mode: protein target achieved
-  noSugaryDrinks: boolean
-}
-
-export interface MealLog {
+export interface Habit {
   id: string
-  type: MealType
-  description: string
-  proteinGrams?: number
-  notes?: string
-  /** Reserved for a future photo feature (data URL / path). */
-  photo?: string
+  name: string
+  category: HabitCategory
+  frequency: HabitFrequency
+  /** for custom frequency: specific weekdays it is due */
+  days: Weekday[]
+  /** for weekly frequency: target times per week */
+  weeklyTarget?: number
+  /** measurable habit (tracks a numeric value toward a target) */
+  measurable: boolean
+  targetValue?: number
+  unit?: string
+  recommendedTime?: TimeOfDay
+  /** short description / why it matters */
+  description?: string
+  isActive: boolean
+  isPaused: boolean
+  sortOrder: number
+  createdAt: string
 }
 
-export interface DayNutrition {
-  checklist: Partial<NutritionChecklist>
-  waterMl: number
-  /** Detailed-mode estimated total protein for the day. */
-  proteinGrams?: number
-  meals: MealLog[]
+export interface HabitLog {
+  habitId: string
+  date: string // yyyy-mm-dd
+  completed: boolean
+  /** measured value for measurable habits */
+  value?: number
+  note?: string
 }
 
-export interface DayRecord {
-  date: string // ISO yyyy-mm-dd
-  habits: Partial<Habits>
-  bonus: Partial<BonusHabits>
-  note: string
-  walking: Walking
-  listening: Listening
-  nutrition?: DayNutrition
+export interface Goal {
+  id: string
+  title: string
+  category: HabitCategory
+  /** free-form follow-up answers keyed by question id */
+  details?: Record<string, string>
+  createdAt: string
 }
 
-export interface WeightEntry {
-  date: string // ISO yyyy-mm-dd
-  weightKg: number
-  waistCm?: number
-  bodyFatPct?: number
+export interface Milestone {
+  id: string
+  title: string
+  targetDate: string // yyyy-mm-dd
+  measurable: boolean
+  targetValue?: number
+  unit?: string
+  achieved: boolean
 }
 
-export interface QuranProgress {
-  /** Surah number currently being memorized */
-  currentSurah: number
-  /** Next ayah to memorize within the current surah (1-based) */
-  currentAyah: number
-  /** Total ayat memorized (cumulative counter) */
-  ayatMemorized: number
-  /** Surah numbers fully completed */
-  completedSurahs: number[]
+export interface Measurement {
+  id: string
+  date: string
+  type: string // e.g. 'weight', 'waist'
+  value: number
+  unit: string
+  note?: string
 }
 
-export interface WeeklyReview {
+export interface WeeklyReviewEntry {
+  weekStart: string // yyyy-mm-dd
+  score: number // 0..100
+  bestHabit?: string
+  mostMissedHabit?: string
+  consistencyPct: number
   wentWell: string
   difficult: string
-  change: string
-  // Nutrition reflection (all optional)
-  hardestMeal?: string
-  hungerChange?: string
-  energyChange?: string
-  discomfortFood?: string
+  changed: string
+  aiSuggestions?: string[]
+  createdAt: string
 }
 
-export interface AppData {
-  version: number
-  settings: Settings
-  /** keyed by ISO date */
-  days: Record<string, DayRecord>
-  quran: QuranProgress
-  /** keyed by ISO date of the Friday that week */
-  reviews: Record<string, WeeklyReview>
-  /** keyed by ISO date */
-  weights: Record<string, WeightEntry>
+export interface Schedule {
+  wakeTime?: string // "06:30"
+  sleepTime?: string
+  workStart?: string
+  workEnd?: string
+  preferredTime: TimeOfDay
+  availableDays: Weekday[]
 }
 
-// The set of core habit keys (order matters for display)
-export const CORE_HABIT_KEYS: (keyof Habits)[] = [
-  'fajrMosque',
-  'adhkar',
-  'quranWird',
-  'workout',
-  'hifz',
-  'murajaah',
-]
-
-export const HABIT_LABELS: Record<keyof Habits, string> = {
-  fajrMosque: 'Fajr in mosque',
-  adhkar: 'Morning Adhkar',
-  quranWird: 'Quran Wird',
-  workout: 'Workout',
-  hifz: 'Quran Hifz (memorization)',
-  murajaah: "Muraja'ah (revision)",
+export interface UtmData {
+  source?: string
+  medium?: string
+  campaign?: string
+  content?: string
+  term?: string
+  referrer?: string
 }
 
-// Manually-checked nutrition items (water is scored separately from waterMl)
-export const NUTRITION_CHECK_KEYS: (keyof NutritionChecklist)[] = [
-  'breakfast',
-  'snack',
-  'lunch',
-  'dinner',
-  'protein',
-  'noSugaryDrinks',
-]
-
-export const NUTRITION_LABELS: Record<keyof NutritionChecklist, string> = {
-  breakfast: 'Healthy Breakfast',
-  snack: 'Healthy Work Snack',
-  lunch: 'Balanced Lunch',
-  dinner: 'Healthy Dinner',
-  protein: 'Protein Target',
-  noSugaryDrinks: 'No Sugary Drinks',
+export interface Profile {
+  id: string
+  name: string
+  email?: string
+  phone?: string
+  countryCode?: string // e.g. '+20'
+  country?: string // ISO alpha-2, e.g. 'EG'
+  bio?: string
+  schedule: Schedule
+  campaignName: string
+  campaignStart: string // yyyy-mm-dd
+  campaignEnd: string // yyyy-mm-dd
+  theme: Theme
+  marketingConsent: boolean
+  marketingConsentAt?: string
+  privacyPolicyVersion?: string
+  isAdmin: boolean
+  onboardingComplete: boolean
+  createdAt: string
+  lastActiveAt?: string
+  utm?: UtmData
 }
 
-export const MEAL_TYPES: { type: MealType; label: string }[] = [
-  { type: 'breakfast', label: 'Breakfast' },
-  { type: 'snack', label: 'Work Snack' },
-  { type: 'lunch', label: 'Lunch' },
-  { type: 'dinner', label: 'Dinner' },
+export interface UserData {
+  profile: Profile
+  goals: Goal[]
+  habits: Habit[]
+  logs: HabitLog[]
+  milestones: Milestone[]
+  measurements: Measurement[]
+  reviews: WeeklyReviewEntry[]
+}
+
+// ---- AI plan proposal shape (returned by /api/generate-plan) ----
+
+export interface ProposedHabit {
+  name: string
+  category: HabitCategory
+  frequency: HabitFrequency
+  days?: Weekday[]
+  weeklyTarget?: number
+  measurable?: boolean
+  targetValue?: number
+  unit?: string
+  recommendedTime?: TimeOfDay
+  rationale?: string
+}
+
+export interface ProposedMilestone {
+  title: string
+  targetDate: string
+  measurable?: boolean
+  targetValue?: number
+  unit?: string
+}
+
+export interface GeneratedPlan {
+  summary: string
+  mainGoals: string[]
+  dailyHabits: ProposedHabit[]
+  weeklyHabits: ProposedHabit[]
+  milestones: ProposedMilestone[]
+}
+
+export const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+export const WEEKDAY_LONG = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
 ]

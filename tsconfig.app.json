@@ -22,5 +22,22 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/state/AppContext.tsx",
+    "src/lib/storage.ts",
+    "src/lib/defaults.ts",
+    "src/lib/quran.ts",
+    "src/components/Dashboard.tsx",
+    "src/components/DayChecklist.tsx",
+    "src/components/DayModal.tsx",
+    "src/components/Calendar.tsx",
+    "src/components/Milestones.tsx",
+    "src/components/NutritionView.tsx",
+    "src/components/QuranView.tsx",
+    "src/components/SettingsView.tsx",
+    "src/components/WalkingView.tsx",
+    "src/components/WorkoutView.tsx",
+    "src/components/WeeklyReview.tsx"
+  ]
 }

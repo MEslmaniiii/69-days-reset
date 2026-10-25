@@ -1,475 +1,219 @@
-import type { AppData, DayNutrition, Habits, Settings, Weekday } from '../types'
-import { CORE_HABIT_KEYS } from '../types'
-import {
-  addDays,
-  clampKey,
-  diffDays,
-  fromKey,
-  rangeKeys,
-  weekEnd,
-  weekStart,
-} from './dates'
+// Generic progress calculations over a dynamic set of habits + logs.
 
-export type DayStatus = 'future' | 'complete' | 'partial' | 'missed' | 'today'
+import type { Habit, HabitLog, Weekday } from '../types'
+import { addDays, diffDays, fromKey, todayKey, weekStart } from './dates'
 
-export function isWorkoutDay(key: string, settings: Settings): boolean {
-  const wd = fromKey(key).getDay() as Weekday
-  return settings.workoutDays.includes(wd)
+export function logMapKey(habitId: string, date: string): string {
+  return `${habitId}|${date}`
 }
 
-/** Core habits that apply to a given date (workout only on workout days). */
-export function applicableKeys(key: string, settings: Settings): (keyof Habits)[] {
-  return CORE_HABIT_KEYS.filter((k) => {
-    if (k === 'workout') return isWorkoutDay(key, settings)
-    return true
-  })
+export function buildLogMap(logs: HabitLog[]): Map<string, HabitLog> {
+  const m = new Map<string, HabitLog>()
+  for (const l of logs) m.set(logMapKey(l.habitId, l.date), l)
+  return m
 }
 
-export interface Ratio {
-  completed: number
-  total: number
-  ratio: number // 0..1
+export function isActive(h: Habit): boolean {
+  return h.isActive && !h.isPaused
 }
 
-export function dayRatio(data: AppData, settings: Settings, key: string): Ratio {
-  const keys = applicableKeys(key, settings)
-  const rec = data.days[key]
-  const completed = keys.filter((k) => rec?.habits?.[k]).length
-  const total = keys.length
-  return { completed, total, ratio: total === 0 ? 0 : completed / total }
-}
-
-export function isCompleteDay(data: AppData, settings: Settings, key: string): boolean {
-  const r = dayRatio(data, settings, key)
-  return r.total > 0 && r.completed === r.total
-}
-
-export function dayStatus(
-  data: AppData,
-  settings: Settings,
-  key: string,
-  today: string,
-): DayStatus {
-  if (key > today) return 'future'
-  const r = dayRatio(data, settings, key)
-  if (r.ratio >= 1) return 'complete'
-  if (r.ratio > 0) return 'partial'
-  // ratio === 0
-  if (key === today) return 'today'
-  return 'missed'
-}
-
-/** 1-based day number within the challenge for a given date (can be <1 or >69). */
-export function dayNumber(settings: Settings, key: string): number {
-  return diffDays(settings.startDate, key) + 1
-}
-
-export function totalDays(settings: Settings): number {
-  return diffDays(settings.startDate, settings.endDate) + 1
-}
-
-/** Elapsed in-range date keys: from start to min(today, end). */
-export function elapsedKeys(settings: Settings, today: string): string[] {
-  if (today < settings.startDate) return []
-  const end = today < settings.endDate ? today : settings.endDate
-  return rangeKeys(settings.startDate, end)
-}
-
-interface Aggregate {
-  completed: number
-  applicable: number
-  pct: number
-}
-
-function aggregate(data: AppData, settings: Settings, keys: string[]): Aggregate {
-  let completed = 0
-  let applicable = 0
-  for (const key of keys) {
-    const r = dayRatio(data, settings, key)
-    completed += r.completed
-    applicable += r.total
-  }
-  return {
-    completed,
-    applicable,
-    pct: applicable === 0 ? 0 : Math.round((completed / applicable) * 100),
+/** Is this habit "due" (expected) on the given date? */
+export function isHabitDueOn(h: Habit, dateKey: string): boolean {
+  if (!isActive(h)) return false
+  const wd = fromKey(dateKey).getDay() as Weekday
+  switch (h.frequency) {
+    case 'daily':
+      return true
+    case 'custom':
+      return h.days.includes(wd)
+    case 'weekly':
+      // weekly-target habits can be done any day; always "available".
+      return true
+    default:
+      return true
   }
 }
 
-/** Completion % for a single day. */
-export function todayPct(data: AppData, settings: Settings, today: string): number {
-  return Math.round(dayRatio(data, settings, today).ratio * 100)
+export function habitsDueOn(habits: Habit[], dateKey: string): Habit[] {
+  return habits
+    .filter((h) => isHabitDueOn(h, dateKey))
+    .sort((a, b) => a.sortOrder - b.sortOrder)
 }
 
-export function weeklyPct(data: AppData, settings: Settings, today: string): number {
-  const ws = clampKey(weekStart(today), settings.startDate, settings.endDate)
-  const we = clampKey(weekEnd(today), settings.startDate, settings.endDate)
-  const end = we < today ? we : today
-  if (end < ws) return 0
-  return aggregate(data, settings, rangeKeys(ws, end)).pct
-}
-
-export function monthlyPct(data: AppData, settings: Settings, today: string): number {
-  const d = fromKey(today)
-  const first = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-  const ms = clampKey(first, settings.startDate, settings.endDate)
-  const end = today < settings.endDate ? today : settings.endDate
-  if (end < ms) return 0
-  return aggregate(data, settings, rangeKeys(ms, end)).pct
-}
-
-export function overallPct(data: AppData, settings: Settings, today: string): number {
-  return aggregate(data, settings, elapsedKeys(settings, today)).pct
-}
-
-/** Percentage for a specific habit over elapsed days (respecting applicability). */
-export function habitPct(
-  data: AppData,
-  settings: Settings,
-  today: string,
-  habit: keyof Habits,
+/** Completion fraction (0..1) for one habit on one day. */
+export function habitDayFraction(
+  h: Habit,
+  log: HabitLog | undefined
 ): number {
-  let done = 0
-  let applicable = 0
-  for (const key of elapsedKeys(settings, today)) {
-    if (habit === 'workout' && !isWorkoutDay(key, settings)) continue
-    applicable++
-    if (data.days[key]?.habits?.[habit]) done++
-  }
-  return applicable === 0 ? 0 : Math.round((done / applicable) * 100)
-}
-
-/** Combined Quran completion % (wird + hifz + muraja'ah). */
-export function quranPct(data: AppData, settings: Settings, today: string): number {
-  const keys = elapsedKeys(settings, today)
-  let done = 0
-  for (const key of keys) {
-    const h = data.days[key]?.habits
-    if (h?.quranWird) done++
-    if (h?.hifz) done++
-    if (h?.murajaah) done++
-  }
-  const applicable = keys.length * 3
-  return applicable === 0 ? 0 : Math.round((done / applicable) * 100)
-}
-
-/** Current streak of complete days ending at today (or yesterday if today isn't done yet). */
-export function currentStreak(data: AppData, settings: Settings, today: string): number {
-  if (today < settings.startDate) return 0
-  let cursor = today > settings.endDate ? settings.endDate : today
-  // Don't penalize an in-progress today: if today isn't complete, start at yesterday.
-  if (!isCompleteDay(data, settings, cursor)) {
-    cursor = addDays(cursor, -1)
-  }
-  let streak = 0
-  while (cursor >= settings.startDate && isCompleteDay(data, settings, cursor)) {
-    streak++
-    cursor = addDays(cursor, -1)
-  }
-  return streak
-}
-
-export function bestStreak(data: AppData, settings: Settings, today: string): number {
-  let best = 0
-  let run = 0
-  for (const key of elapsedKeys(settings, today)) {
-    if (isCompleteDay(data, settings, key)) {
-      run++
-      if (run > best) best = run
-    } else {
-      run = 0
+  if (!log) return 0
+  if (h.measurable && h.targetValue && h.targetValue > 0) {
+    if (typeof log.value === 'number') {
+      return Math.max(0, Math.min(1, log.value / h.targetValue))
     }
+    return log.completed ? 1 : 0
   }
-  return best
+  return log.completed ? 1 : 0
 }
 
-export function daysCompleted(data: AppData, settings: Settings, today: string): number {
-  return elapsedKeys(settings, today).filter((k) => isCompleteDay(data, settings, k)).length
-}
-
-export function daysRemaining(settings: Settings, today: string): number {
-  if (today >= settings.endDate) return 0
-  if (today < settings.startDate) return totalDays(settings)
-  return diffDays(today, settings.endDate)
-}
-
-/** Was yesterday missed (0 completion, in range)? Used for the gentle "don't miss twice" nudge. */
-export function missedYesterday(data: AppData, settings: Settings, today: string): boolean {
-  const y = addDays(today, -1)
-  if (y < settings.startDate || y > settings.endDate) return false
-  const r = dayRatio(data, settings, y)
-  return r.total > 0 && r.completed === 0
-}
-
-/** Consecutive-day streak for a single habit (workout days skip-aware). */
-export function habitStreak(
-  data: AppData,
-  settings: Settings,
-  today: string,
-  habit: keyof Habits,
+/** Overall day progress 0..100 across the habits due that day. */
+export function dayProgressPct(
+  habits: Habit[],
+  logMap: Map<string, HabitLog>,
+  dateKey: string
 ): number {
-  if (today < settings.startDate) return 0
-  let cursor = today > settings.endDate ? settings.endDate : today
-  const done = (k: string) => !!data.days[k]?.habits?.[habit]
-  // Workout streak: only count workout days; a non-workout day neither breaks nor extends.
-  if (habit === 'workout') {
-    let streak = 0
-    while (cursor >= settings.startDate) {
-      if (isWorkoutDay(cursor, settings)) {
-        if (done(cursor)) streak++
-        else break
-      }
-      cursor = addDays(cursor, -1)
-    }
-    return streak
+  const due = habitsDueOn(habits, dateKey)
+  if (due.length === 0) return 0
+  let sum = 0
+  for (const h of due) {
+    sum += habitDayFraction(h, logMap.get(logMapKey(h.id, dateKey)))
   }
-  if (!done(cursor)) cursor = addDays(cursor, -1)
-  let streak = 0
-  while (cursor >= settings.startDate && done(cursor)) {
-    streak++
-    cursor = addDays(cursor, -1)
-  }
-  return streak
+  return Math.round((sum / due.length) * 100)
 }
 
-/** Count of elapsed days where a habit was done. */
-export function habitDays(
-  data: AppData,
-  settings: Settings,
-  today: string,
-  habit: keyof Habits,
-): number {
-  return elapsedKeys(settings, today).filter((k) => data.days[k]?.habits?.[habit]).length
-}
-
-export interface WeekRangeStats {
-  fajr: number
-  workout: number
-  wird: number
-  hifz: number
-  murajaah: number
-  overall: number
-}
-
-/** Stats for the week containing `today` (clamped to challenge & elapsed). */
-export function weekStats(data: AppData, settings: Settings, today: string): WeekRangeStats {
-  const ws = clampKey(weekStart(today), settings.startDate, settings.endDate)
-  const weEnd = clampKey(weekEnd(today), settings.startDate, settings.endDate)
-  const end = weEnd < today ? weEnd : today
-  const keys = end < ws ? [] : rangeKeys(ws, end)
-
-  function pct(habit: keyof Habits): number {
-    let done = 0
-    let app = 0
-    for (const k of keys) {
-      if (habit === 'workout' && !isWorkoutDay(k, settings)) continue
-      app++
-      if (data.days[k]?.habits?.[habit]) done++
-    }
-    return app === 0 ? 0 : Math.round((done / app) * 100)
-  }
-
-  return {
-    fajr: pct('fajrMosque'),
-    workout: pct('workout'),
-    wird: pct('quranWird'),
-    hifz: pct('hifz'),
-    murajaah: pct('murajaah'),
-    overall: aggregate(data, settings, keys).pct,
-  }
-}
-
-// ============================================================
-//                        NUTRITION
-// ============================================================
-
-/** A "good nutrition day" for streak purposes = at least 70% of items done. */
-export const NUTRITION_GOOD_RATIO = 0.7
-
-/** The seven scored nutrition items for a given day. */
-export type NutritionItemKey =
-  | 'breakfast'
-  | 'snack'
-  | 'lunch'
-  | 'dinner'
-  | 'protein'
-  | 'water'
-  | 'noSugaryDrinks'
-
-export const NUTRITION_ITEM_KEYS: NutritionItemKey[] = [
-  'breakfast',
-  'snack',
-  'lunch',
-  'dinner',
-  'protein',
-  'water',
-  'noSugaryDrinks',
-]
-
-export const NUTRITION_ITEM_LABELS: Record<NutritionItemKey, string> = {
-  breakfast: 'Healthy Breakfast',
-  snack: 'Healthy Work Snack',
-  lunch: 'Balanced Lunch',
-  dinner: 'Healthy Dinner',
-  protein: 'Protein Target',
-  water: 'Water Target',
-  noSugaryDrinks: 'No Sugary Drinks',
-}
-
-export function waterDone(nut: DayNutrition | undefined, settings: Settings): boolean {
-  return (nut?.waterMl ?? 0) >= settings.waterTargetMl
-}
-
-export function proteinDone(nut: DayNutrition | undefined, settings: Settings): boolean {
-  if (settings.nutritionMode === 'detailed') {
-    return (nut?.proteinGrams ?? 0) >= settings.proteinTargetMin
-  }
-  return !!nut?.checklist?.protein
-}
-
-/** Whether a single scored nutrition item is satisfied for a day. */
-export function nutritionItemDone(
-  nut: DayNutrition | undefined,
-  settings: Settings,
-  item: NutritionItemKey,
+/** A day "counts" as complete when progress >= threshold (default 80%). */
+export function dayCounts(
+  habits: Habit[],
+  logMap: Map<string, HabitLog>,
+  dateKey: string,
+  threshold = 80
 ): boolean {
-  if (item === 'water') return waterDone(nut, settings)
-  if (item === 'protein') return proteinDone(nut, settings)
-  return !!nut?.checklist?.[item]
+  const due = habitsDueOn(habits, dateKey)
+  if (due.length === 0) return false
+  return dayProgressPct(habits, logMap, dateKey) >= threshold
 }
 
-export function nutritionDayRatio(data: AppData, settings: Settings, key: string): Ratio {
-  const nut = data.days[key]?.nutrition
-  const completed = NUTRITION_ITEM_KEYS.filter((k) => nutritionItemDone(nut, settings, k)).length
-  const total = NUTRITION_ITEM_KEYS.length
-  return { completed, total, ratio: completed / total }
-}
-
-export function isGoodNutritionDay(data: AppData, settings: Settings, key: string): boolean {
-  return nutritionDayRatio(data, settings, key).ratio >= NUTRITION_GOOD_RATIO
-}
-
-function nutritionAggregate(data: AppData, settings: Settings, keys: string[]): number {
-  let completed = 0
-  let total = 0
-  for (const key of keys) {
-    const r = nutritionDayRatio(data, settings, key)
-    completed += r.completed
-    total += r.total
-  }
-  return total === 0 ? 0 : Math.round((completed / total) * 100)
-}
-
-export function nutritionTodayPct(data: AppData, settings: Settings, today: string): number {
-  return Math.round(nutritionDayRatio(data, settings, today).ratio * 100)
-}
-
-export function nutritionWeeklyPct(data: AppData, settings: Settings, today: string): number {
-  const ws = clampKey(weekStart(today), settings.startDate, settings.endDate)
-  const we = clampKey(weekEnd(today), settings.startDate, settings.endDate)
-  const end = we < today ? we : today
-  if (end < ws) return 0
-  return nutritionAggregate(data, settings, rangeKeys(ws, end))
-}
-
-export function nutritionMonthlyPct(data: AppData, settings: Settings, today: string): number {
-  const d = fromKey(today)
-  const first = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-  const ms = clampKey(first, settings.startDate, settings.endDate)
-  const end = today < settings.endDate ? today : settings.endDate
-  if (end < ms) return 0
-  return nutritionAggregate(data, settings, rangeKeys(ms, end))
-}
-
-export function nutritionOverallPct(data: AppData, settings: Settings, today: string): number {
-  return nutritionAggregate(data, settings, elapsedKeys(settings, today))
-}
-
-/** Adherence % for a single nutrition item over elapsed days. */
-export function nutritionItemPct(
-  data: AppData,
-  settings: Settings,
-  today: string,
-  item: NutritionItemKey,
+/** Current streak: consecutive completed days counting back from today (or yesterday). */
+export function currentStreak(
+  habits: Habit[],
+  logMap: Map<string, HabitLog>,
+  today = todayKey()
 ): number {
-  const keys = elapsedKeys(settings, today)
-  if (keys.length === 0) return 0
-  let done = 0
-  for (const key of keys) {
-    if (nutritionItemDone(data.days[key]?.nutrition, settings, item)) done++
-  }
-  return Math.round((done / keys.length) * 100)
-}
-
-export function nutritionCurrentStreak(data: AppData, settings: Settings, today: string): number {
-  if (today < settings.startDate) return 0
-  let cursor = today > settings.endDate ? settings.endDate : today
-  if (!isGoodNutritionDay(data, settings, cursor)) cursor = addDays(cursor, -1)
   let streak = 0
-  while (cursor >= settings.startDate && isGoodNutritionDay(data, settings, cursor)) {
+  // Allow today to be incomplete without breaking the streak until end of day.
+  let cursor = dayCounts(habits, logMap, today) ? today : addDays(today, -1)
+  while (dayCounts(habits, logMap, cursor)) {
     streak++
     cursor = addDays(cursor, -1)
   }
   return streak
 }
 
-export function nutritionBestStreak(data: AppData, settings: Settings, today: string): number {
+/** Best streak over [start, today]. */
+export function bestStreak(
+  habits: Habit[],
+  logMap: Map<string, HabitLog>,
+  start: string,
+  today = todayKey()
+): number {
   let best = 0
   let run = 0
-  for (const key of elapsedKeys(settings, today)) {
-    if (isGoodNutritionDay(data, settings, key)) {
+  const total = Math.max(0, diffDays(start, today)) + 1
+  let cursor = start
+  for (let i = 0; i < total; i++) {
+    if (dayCounts(habits, logMap, cursor)) {
       run++
       if (run > best) best = run
     } else {
       run = 0
     }
+    cursor = addDays(cursor, 1)
   }
   return best
 }
 
-/** Weighted Overall Lifestyle % from already-computed core & nutrition pcts. */
-export function lifestylePct(corePct: number, nutritionPct: number, settings: Settings): number {
-  const cw = Math.max(0, settings.coreWeight)
-  const nw = Math.max(0, settings.nutritionWeight)
-  const tot = cw + nw
-  if (tot === 0) return Math.round((corePct + nutritionPct) / 2)
-  return Math.round((corePct * cw + nutritionPct * nw) / tot)
-}
-
-export interface NutritionWeekStats {
-  breakfast: number
-  snack: number
-  dinner: number
-  protein: number
-  water: number
-  overall: number
-}
-
-export function nutritionWeekStats(
-  data: AppData,
-  settings: Settings,
-  today: string,
-): NutritionWeekStats {
-  const ws = clampKey(weekStart(today), settings.startDate, settings.endDate)
-  const weEnd = clampKey(weekEnd(today), settings.startDate, settings.endDate)
-  const end = weEnd < today ? weEnd : today
-  const keys = end < ws ? [] : rangeKeys(ws, end)
-
-  function pct(item: NutritionItemKey): number {
-    if (keys.length === 0) return 0
-    let done = 0
-    for (const k of keys) {
-      if (nutritionItemDone(data.days[k]?.nutrition, settings, item)) done++
-    }
-    return Math.round((done / keys.length) * 100)
+export function daysCompleted(
+  habits: Habit[],
+  logMap: Map<string, HabitLog>,
+  start: string,
+  today = todayKey()
+): number {
+  let count = 0
+  const total = Math.max(0, diffDays(start, today)) + 1
+  let cursor = start
+  for (let i = 0; i < total; i++) {
+    if (dayCounts(habits, logMap, cursor)) count++
+    cursor = addDays(cursor, 1)
   }
+  return count
+}
 
+/** Average day progress across elapsed days in [start, today]. */
+export function overallProgressPct(
+  habits: Habit[],
+  logMap: Map<string, HabitLog>,
+  start: string,
+  today = todayKey()
+): number {
+  const total = Math.max(0, diffDays(start, today)) + 1
+  if (total <= 0) return 0
+  let sum = 0
+  let cursor = start
+  for (let i = 0; i < total; i++) {
+    sum += dayProgressPct(habits, logMap, cursor)
+    cursor = addDays(cursor, 1)
+  }
+  return Math.round(sum / total)
+}
+
+/** Average day progress for the current week up to `today`. */
+export function weekProgressPct(
+  habits: Habit[],
+  logMap: Map<string, HabitLog>,
+  today = todayKey()
+): number {
+  const start = weekStart(today)
+  const days = diffDays(start, today) + 1
+  let sum = 0
+  let cursor = start
+  for (let i = 0; i < days; i++) {
+    sum += dayProgressPct(habits, logMap, cursor)
+    cursor = addDays(cursor, 1)
+  }
+  return Math.round(sum / days)
+}
+
+export interface WeekStats {
+  weekStart: string
+  consistencyPct: number
+  bestHabit?: { id: string; name: string; pct: number }
+  mostMissed?: { id: string; name: string; pct: number }
+  perHabit: { id: string; name: string; pct: number }[]
+}
+
+/** Per-habit completion across a given week [weekStartKey .. +6], bounded by today. */
+export function weekStats(
+  habits: Habit[],
+  logMap: Map<string, HabitLog>,
+  weekStartKey: string,
+  today = todayKey()
+): WeekStats {
+  const perHabit: { id: string; name: string; pct: number }[] = []
+  for (const h of habits) {
+    if (!isActive(h)) continue
+    let due = 0
+    let done = 0
+    let cursor = weekStartKey
+    for (let i = 0; i < 7; i++) {
+      if (cursor <= today && isHabitDueOn(h, cursor)) {
+        due++
+        done += habitDayFraction(h, logMap.get(logMapKey(h.id, cursor)))
+      }
+      cursor = addDays(cursor, 1)
+    }
+    if (due > 0) {
+      perHabit.push({ id: h.id, name: h.name, pct: Math.round((done / due) * 100) })
+    }
+  }
+  const consistencyPct =
+    perHabit.length === 0
+      ? 0
+      : Math.round(perHabit.reduce((a, b) => a + b.pct, 0) / perHabit.length)
+  const sorted = [...perHabit].sort((a, b) => b.pct - a.pct)
   return {
-    breakfast: pct('breakfast'),
-    snack: pct('snack'),
-    dinner: pct('dinner'),
-    protein: pct('protein'),
-    water: pct('water'),
-    overall: nutritionAggregate(data, settings, keys),
+    weekStart: weekStartKey,
+    consistencyPct,
+    bestHabit: sorted[0],
+    mostMissed: sorted[sorted.length - 1],
+    perHabit,
   }
 }

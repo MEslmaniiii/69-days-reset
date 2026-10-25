@@ -1,4 +1,70 @@
-import type { ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
+
+export function Button({
+  children,
+  variant = 'primary',
+  loading,
+  className = '',
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: 'primary' | 'ghost' | 'outline' | 'danger'
+  loading?: boolean
+}) {
+  const cls =
+    variant === 'primary'
+      ? 'btn-primary'
+      : variant === 'ghost'
+        ? 'btn-ghost'
+        : variant === 'danger'
+          ? 'btn bg-red-600 text-white hover:bg-red-700 disabled:opacity-50'
+          : 'btn border border-sage-300 dark:border-white/15 text-sage-800 dark:text-sage-100 hover:bg-sage-50 dark:hover:bg-white/5'
+  return (
+    <button className={`${cls} ${className}`} disabled={loading || rest.disabled} {...rest}>
+      {loading && <Spinner small />}
+      {children}
+    </button>
+  )
+}
+
+export function Spinner({ small }: { small?: boolean }) {
+  const s = small ? 'h-4 w-4' : 'h-6 w-6'
+  return (
+    <svg className={`${s} animate-spin text-current`} viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+    </svg>
+  )
+}
+
+export function Pill({
+  children,
+  tone = 'sage',
+}: {
+  children: ReactNode
+  tone?: 'sage' | 'gold' | 'muted'
+}) {
+  const c =
+    tone === 'gold'
+      ? 'bg-gold-500/15 text-gold-500'
+      : tone === 'muted'
+        ? 'bg-sage-100 text-sage-500 dark:bg-white/5 dark:text-sage-400'
+        : 'bg-sage-500/12 text-sage-600 dark:text-sage-300'
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${c}`}>
+      {children}
+    </span>
+  )
+}
+
+export function Field({ label, hint, children }: { label?: string; hint?: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      {label && <span className="label">{label}</span>}
+      {children}
+      {hint && <span className="mt-1 block text-xs text-sage-400 dark:text-sage-500">{hint}</span>}
+    </label>
+  )
+}
 
 export function ProgressBar({
   pct,
