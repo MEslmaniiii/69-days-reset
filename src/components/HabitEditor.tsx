@@ -14,6 +14,8 @@ export function newBlankHabit(sortOrder: number): Habit {
     frequency: 'daily',
     days: [],
     measurable: false,
+    optional: false,
+    lightDay: false,
     isActive: true,
     isPaused: false,
     sortOrder,
@@ -38,6 +40,7 @@ function HabitRow({
     <div className="card space-y-3 p-4">
       <div className="flex items-start gap-2">
         <input
+          dir="auto"
           className="field flex-1 font-medium"
           value={habit.name}
           placeholder="Habit name (e.g. Walk 30 minutes)"
@@ -164,6 +167,40 @@ function HabitRow({
             />
             Paused
           </label>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 border-t border-sage-100 pt-3 dark:border-white/5">
+        <label className="flex items-center gap-2 text-sm text-sage-600 dark:text-sage-300">
+          <input
+            type="checkbox"
+            checked={Boolean(habit.optional)}
+            onChange={(e) => set({ optional: e.target.checked })}
+          />
+          Optional (bonus — never counts as a miss)
+        </label>
+        <label className="flex items-center gap-2 text-sm text-sage-600 dark:text-sage-300">
+          <input
+            type="checkbox"
+            checked={Boolean(habit.lightDay)}
+            onChange={(e) => set({ lightDay: e.target.checked })}
+          />
+          Keep on light days
+        </label>
+        {habit.lightDay && habit.measurable && (
+          <div className="flex items-center gap-2 text-sm text-sage-500">
+            <span>Light-day target</span>
+            <input
+              type="number"
+              className="field w-20"
+              placeholder={habit.targetValue?.toString() ?? ''}
+              value={habit.lightTargetValue ?? ''}
+              onChange={(e) =>
+                set({ lightTargetValue: e.target.value === '' ? undefined : Number(e.target.value) })
+              }
+            />
+            <span className="text-sage-400">{habit.unit}</span>
+          </div>
         )}
       </div>
     </div>

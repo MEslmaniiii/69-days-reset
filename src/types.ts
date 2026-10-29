@@ -94,6 +94,20 @@ export interface Habit {
   recommendedTime?: TimeOfDay
   /** short description / why it matters */
   description?: string
+  /**
+   * Optional/"bonus" habit: it is tracked and shown, but NEVER counts toward
+   * the day's completion %, streaks, or weekly consistency, and skipping it is
+   * never a "miss". Use for things like protected family time or content you
+   * only do when you have the energy.
+   */
+  optional?: boolean
+  /**
+   * Keep this habit on a "light day". On a light day only light-day habits are
+   * expected; everything else is deferred (shown but not counted, never a miss).
+   */
+  lightDay?: boolean
+  /** Reduced target used on light days for measurable light-day habits (e.g. a 10-min walk instead of 25). */
+  lightTargetValue?: number
   isActive: boolean
   isPaused: boolean
   sortOrder: number
@@ -157,6 +171,11 @@ export interface Schedule {
   workEnd?: string
   preferredTime: TimeOfDay
   availableDays: Weekday[]
+  /** IANA timezone used to decide what "today" is (e.g. "Africa/Cairo"). */
+  timezone?: string
+  /** Intermittent-fasting eating window (optional, user-defined, never assumed). */
+  eatingWindowStart?: string // "13:00"
+  eatingWindowEnd?: string // "21:00"
 }
 
 export interface UtmData {
@@ -186,6 +205,8 @@ export interface Profile {
   privacyPolicyVersion?: string
   isAdmin: boolean
   onboardingComplete: boolean
+  /** Dates (yyyy-mm-dd) the user marked as a "light day". */
+  lightDays?: string[]
   createdAt: string
   lastActiveAt?: string
   utm?: UtmData
@@ -213,6 +234,9 @@ export interface ProposedHabit {
   targetValue?: number
   unit?: string
   recommendedTime?: TimeOfDay
+  optional?: boolean
+  lightDay?: boolean
+  lightTargetValue?: number
   rationale?: string
 }
 

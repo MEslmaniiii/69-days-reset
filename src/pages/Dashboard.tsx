@@ -22,8 +22,10 @@ import { Checkbox, LabeledBar, ProgressBar, SectionTitle, StatCard } from '../co
 export default function Dashboard() {
   const { data, setLog, saveProfile } = useData()
   const { user } = useAuth()
-  const today = todayKey()
   const touched = useRef(false)
+
+  const logMap = useMemo(() => buildLogMap(data?.logs ?? []), [data?.logs])
+  const lightDays = useMemo(() => new Set(data?.profile.lightDays ?? []), [data?.profile.lightDays])
 
   // record last-active once per mount
   useEffect(() => {
@@ -34,21 +36,46 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.profile?.id])
 
-  const logMap = useMemo(() => buildLogMap(data?.logs ?? []), [data?.logs])
-
   if (!data) return null
   const { profile, habits } = data
+  const today = todayKey(profile.schedule?.timezone)
+  const isLightToday = lightDays.has(today)
 
-  const due = habitsDueOn(habits, today)
-  const dayPct = dayProgressPct(habits, logMap, today)
-  const weekPct = weekProgressPct(habits, logMap, today)
-  const overallPct = overallProgressPct(habits, logMap, profile.campaignStart || today, today)
-  const streak = currentStreak(habits, logMap, today)
-  const best = bestStreak(habits, logMap, profile.campaignStart || today, today)
-  const done = daysCompleted(habits, logMap, profile.campaignStart || today, today)
+  // Classify what's on today.
+  const dueAll = habitsDueOn(habits, today)
+  const counting = dueAll.filter(
+    (h) => !h.optional && h.frequency !== 'weekly' && (!isLightToday || h.lightDay)
+  )
+  const deferred = isLightToday
+    ? dueAll.filter((h) => !h.optional && h.frequency !== 'weekly' && !h.lightDay)
+    : []
+  const optional = dueAll.filter((h) => h.optional)
+  const weekly = dueAll.filter((h) => !h.optional && h.frequency === 'weekly')
+
+  const dayPct = dayProgressPct(habits, logMap, today, lightDays)
+  const weekPct = weekProgressPct(habits, logMap, today, lightDays)
+  const overallPct = overallProgressPct(habits, logMap, profile.campaignStart || today, today, lightDays)
+  const streak = currentStreak(habits, logMap, today, lightDays)
+  const best = bestStreak(habits, logMap, profile.campaignStart || today, today, lightDays)
+  const done = daysCompleted(habits, logMap, profile.campaignStart || today, today, lightDays)
   const daysLeft = Math.max(0, daysBetweenInclusive(today, profile.campaignEnd) - 1)
 
   const firstName = profile.name.split(' ')[0] || 'there'
+
+  const toggleLight = () => {
+    const base = profile.lightDays ?? []
+    const next = isLightToday ? base.filter((d) => d !== today) : [...base, today]
+    void saveProfile({ lightDays: next })
+    track('light_day_toggled', { on: !isLightToday }, user?.id)
+  }
+
+  const logHabit = (h: Habit) => (l: HabitLog) => {
+    void setLog(l)
+    if (l.completed) track('habit_completed', { category: h.category }, user?.id)
+  }
+
+  const effTarget = (h: Habit): number | undefined =>
+    isLightToday && h.lightDay && h.lightTargetValue ? h.lightTargetValue : h.targetValue
 
   return (
     <div className="space-y-6">
@@ -66,16 +93,33 @@ export default function Dashboard() {
           <span className="text-2xl font-semibold tabular-nums text-sage-700 dark:text-sage-200">{dayPct}%</span>
         </div>
         <ProgressBar pct={dayPct} size="lg" />
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-xs text-sage-400 dark:text-sage-500">
+            {isLightToday
+              ? 'يوم خفيف — الأساسيات فقط تُحتسب، والباقي مؤجَّل بلا تقصير.'
+              : 'يوم عادي'}
+          </span>
+          <button
+            onClick={toggleLight}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              isLightToday
+                ? 'bg-gold-500/15 text-gold-500'
+                : 'bg-sage-100 text-sage-600 dark:bg-white/5 dark:text-sage-300'
+            }`}
+          >
+            {isLightToday ? '✓ يوم خفيف' : 'تفعيل يوم خفيف'}
+          </button>
+        </div>
       </div>
 
-      {/* Today's habits */}
+      {/* Today's habits (counting) */}
       <section>
-        <SectionTitle sub={due.length ? `${due.length} habit${due.length > 1 ? 's' : ''} today` : undefined}>
+        <SectionTitle sub={counting.length ? `${counting.length} أساسية اليوم` : undefined}>
           Today
         </SectionTitle>
-        {due.length === 0 ? (
+        {counting.length === 0 ? (
           <div className="card p-5 text-sm text-sage-500">
-            No habits scheduled today.{' '}
+            No core habits scheduled today.{' '}
             <Link to="/app/habits" className="text-sage-700 underline dark:text-sage-200">
               Manage your habits
             </Link>
@@ -83,15 +127,56 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-2.5">
-            {due.map((h) => (
-              <HabitRow key={h.id} habit={h} log={logMap.get(logMapKey(h.id, today))} onLog={(l) => {
-                void setLog(l)
-                if (l.completed) track('habit_completed', { category: h.category }, user?.id)
-              }} date={today} />
+            {counting.map((h) => (
+              <HabitRow key={h.id} habit={h} target={effTarget(h)} log={logMap.get(logMapKey(h.id, today))} onLog={logHabit(h)} date={today} />
             ))}
           </div>
         )}
       </section>
+
+      {/* Deferred on a light day — shown, never a miss */}
+      {deferred.length > 0 && (
+        <section>
+          <SectionTitle sub="يوم خفيف: مؤجَّلة ولا تُحتسب فشلًا — سجّلها لو حبيت.">مؤجَّل اليوم</SectionTitle>
+          <div className="space-y-2.5">
+            {deferred.map((h) => (
+              <HabitRow key={h.id} habit={h} target={h.targetValue} log={logMap.get(logMapKey(h.id, today))} onLog={logHabit(h)} date={today} bonus />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Optional / protected — never counts toward %, streaks */}
+      {optional.length > 0 && (
+        <section>
+          <SectionTitle sub="اختياري — لا يُحتسب فشلًا ولا يقطع سلسلتك.">اختياري ومحمي</SectionTitle>
+          <div className="space-y-2.5">
+            {optional.map((h) => (
+              <HabitRow key={h.id} habit={h} target={h.targetValue} log={logMap.get(logMapKey(h.id, today))} onLog={logHabit(h)} date={today} bonus />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Weekly — a week-level target, not a daily obligation */}
+      {weekly.length > 0 && (
+        <section>
+          <SectionTitle sub="هدف أسبوعي — نفّذه في أي يوم مناسب.">هذا الأسبوع</SectionTitle>
+          <div className="space-y-2.5">
+            {weekly.map((h) => (
+              <HabitRow
+                key={h.id}
+                habit={h}
+                target={h.targetValue}
+                log={logMap.get(logMapKey(h.id, today))}
+                onLog={logHabit(h)}
+                date={today}
+                hintOverride={`${h.weeklyTarget ?? 1}× / أسبوع`}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Stats */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -131,21 +216,28 @@ function HabitRow({
   log,
   onLog,
   date,
+  target,
+  bonus,
+  hintOverride,
 }: {
   habit: Habit
   log: HabitLog | undefined
   onLog: (log: HabitLog) => void
   date: string
+  target?: number
+  bonus?: boolean
+  hintOverride?: string
 }) {
-  if (habit.measurable && habit.targetValue) {
+  const hint = hintOverride ?? CATEGORY_LABELS[habit.category]
+  if (habit.measurable && target) {
     const value = log?.value ?? 0
-    const pct = Math.min(100, Math.round((value / habit.targetValue) * 100))
+    const pct = Math.min(100, Math.round((value / target) * 100))
     return (
       <div className="card p-3.5">
         <div className="mb-2 flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium text-sage-800 dark:text-sage-100">{habit.name}</div>
-            <div className="text-xs text-sage-400">{CATEGORY_LABELS[habit.category]}</div>
+            <div dir="auto" className="text-sm font-medium text-sage-800 dark:text-sage-100">{habit.name}</div>
+            <div className="text-xs text-sage-400">{hint}</div>
           </div>
           <div className="flex items-center gap-1 text-sm tabular-nums text-sage-600 dark:text-sage-300">
             <input
@@ -155,13 +247,13 @@ function HabitRow({
               placeholder="0"
               onChange={(e) => {
                 const v = e.target.value === '' ? 0 : Number(e.target.value)
-                onLog({ habitId: habit.id, date, value: v, completed: v >= (habit.targetValue ?? Infinity) })
+                onLog({ habitId: habit.id, date, value: v, completed: v >= target })
               }}
             />
-            <span className="text-sage-400">/ {habit.targetValue} {habit.unit}</span>
+            <span className="text-sage-400">/ {target} {habit.unit}</span>
           </div>
         </div>
-        <ProgressBar pct={pct} />
+        <ProgressBar pct={pct} tone={bonus ? 'gold' : 'sage'} />
       </div>
     )
   }
@@ -169,10 +261,9 @@ function HabitRow({
     <Checkbox
       checked={Boolean(log?.completed)}
       label={habit.name}
-      hint={CATEGORY_LABELS[habit.category]}
-      onChange={() =>
-        onLog({ habitId: habit.id, date, completed: !log?.completed })
-      }
+      hint={hint}
+      bonus={bonus}
+      onChange={() => onLog({ habitId: habit.id, date, completed: !log?.completed })}
     />
   )
 }

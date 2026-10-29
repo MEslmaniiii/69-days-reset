@@ -10,9 +10,10 @@ import { Button, Field, LabeledBar, SectionTitle, StatCard } from '../components
 export default function WeeklyReviewPage() {
   const { data, saveReview } = useData()
   const { user } = useAuth()
-  const today = todayKey()
+  const today = todayKey(data?.profile.schedule?.timezone)
   const ws = weekStart(today)
   const logMap = useMemo(() => buildLogMap(data?.logs ?? []), [data?.logs])
+  const lightDays = useMemo(() => new Set(data?.profile.lightDays ?? []), [data?.profile.lightDays])
 
   const existing = data?.reviews.find((r) => r.weekStart === ws)
   const [wentWell, setWentWell] = useState(existing?.wentWell ?? '')
@@ -25,7 +26,7 @@ export default function WeeklyReviewPage() {
 
   if (!data) return null
 
-  const stats = weekStats(data.habits, logMap, ws, today)
+  const stats = weekStats(data.habits, logMap, ws, today, lightDays)
 
   const getSuggestions = async () => {
     setLoadingAi(true)

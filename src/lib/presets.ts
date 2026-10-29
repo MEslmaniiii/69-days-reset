@@ -17,22 +17,127 @@ const h = (p: ProposedHabit): ProposedHabit => p
 export const PRESETS: Preset[] = [
   {
     id: 'spiritual-health',
-    title: 'Faith & Health',
+    title: 'Faith & Health — روتين العبادة والصحة',
     emoji: '🕌',
-    description: 'Prayer, Quran, movement and clean eating — the original 69 Days Reset.',
+    description:
+      'روتين واقعي يجمع العبادة والحركة والفرنساوي وتعلّم AI، ويحمي وقت الأسرة بعد الشغل — بدون يوم مزدحم ولا شعور بالتقصير.',
     plan: {
-      summary: 'A calm, consistent routine balancing worship, fitness and nutrition.',
-      mainGoals: ['Consistent prayer & Quran', 'Improve fitness', 'Eat cleaner'],
+      summary:
+        'صباح مرتبط بالفجر وترتيب الأنشطة (بدون تثبيت وقت أذان)، ثم مذاكرة ولغة، مع حماية وقت الأسرة مساءً. الأنشطة الاختيارية لا تُحتسب فشلًا، وفيه «يوم خفيف» قابل للاختيار: الصلاة + الأذكار + 10 دقائق مشي + 10 دقائق مراجعة فرنساوي، وبقية الأنشطة تؤجَّل دون أن تقطع سلسلتك.',
+      mainGoals: [
+        'العبادة والالتزام بصلاة الفجر',
+        'الحركة والتمارين البسيطة',
+        'الفرنساوي وتعلّم AI',
+        'حماية وقت الأسرة',
+      ],
       dailyHabits: [
-        h({ name: 'Fajr on time', category: 'spirituality', frequency: 'daily', recommendedTime: 'morning', rationale: 'Anchors the whole day.' }),
-        h({ name: 'Morning Adhkar', category: 'spirituality', frequency: 'daily', recommendedTime: 'morning' }),
-        h({ name: 'Quran — 1 page', category: 'spirituality', frequency: 'daily', measurable: true, targetValue: 1, unit: 'page' }),
-        h({ name: 'Walk', category: 'fitness', frequency: 'daily', measurable: true, targetValue: 8000, unit: 'steps' }),
-        h({ name: 'Water', category: 'nutrition', frequency: 'daily', measurable: true, targetValue: 2.5, unit: 'L' }),
+        h({
+          name: 'صلاة الفجر',
+          category: 'spirituality',
+          frequency: 'daily',
+          recommendedTime: 'morning',
+          lightDay: true,
+          rationale: 'الاستيقاظ لصلاة الفجر — تُرسّخ اليوم كله. علامة إتمام.',
+        }),
+        h({
+          name: 'أذكار الصباح',
+          category: 'spirituality',
+          frequency: 'daily',
+          recommendedTime: 'morning',
+          lightDay: true,
+          rationale: 'تُقال أثناء المشي على المشاية؛ نشاطان متزامنان فلا يُحسب وقتهما مرتين.',
+        }),
+        h({
+          name: 'المشي على المشاية',
+          category: 'fitness',
+          frequency: 'daily',
+          measurable: true,
+          targetValue: 25,
+          unit: 'دقيقة',
+          recommendedTime: 'morning',
+          lightDay: true,
+          lightTargetValue: 10,
+          rationale:
+            '20–30 دقيقة أثناء أذكار الصباح. عادة مستقلة عن تمارين القوة. (يوم خفيف: 10 دقائق).',
+        }),
+        h({
+          name: 'تمارين القوة (سكوات + بلانك)',
+          category: 'fitness',
+          frequency: 'custom',
+          days: [1, 3, 5],
+          recommendedTime: 'morning',
+          rationale:
+            'بعد استراحة 5–10 دقائق: سكوات وبلانك 10–15 دقيقة، مع إمكانية إضافة ضغط على الحائط. 3 أيام أسبوعيًا والأيام قابلة للتعديل. علامة إتمام.',
+        }),
+        h({
+          name: 'مذاكرة الفرنساوي',
+          category: 'language',
+          frequency: 'daily',
+          measurable: true,
+          targetValue: 25,
+          unit: 'دقيقة',
+          recommendedTime: 'morning',
+          lightDay: true,
+          lightTargetValue: 10,
+          rationale:
+            'مراجعة الدرس + الواجب + تدريب النطق (20–30 دقيقة). يومَي السبت والثلاثاء اجعلها مراجعة خفيفة ~10 دقائق للتحضير للحصة. (يوم خفيف: 10 دقائق).',
+        }),
+        h({
+          name: 'حصة الفرنساوي',
+          category: 'language',
+          frequency: 'custom',
+          days: [2, 6],
+          recommendedTime: 'morning',
+          rationale: 'حصة من 9:00 إلى 10:00 صباحًا (السبت والثلاثاء). علامة إتمام.',
+        }),
+        h({
+          name: 'جلسة تعلّم AI',
+          category: 'learning',
+          frequency: 'custom',
+          days: [0, 1, 3, 4, 5],
+          measurable: true,
+          targetValue: 60,
+          unit: 'دقيقة',
+          recommendedTime: 'morning',
+          rationale:
+            'في الأيام غير أيام الحصة: حتى 60 دقيقة (قابلة للتعديل) إذا سمح جدول الشغل. لا تتعارض مع حصة الفرنساوي. الأيام قابلة للتعديل.',
+        }),
+        h({
+          name: 'تجهيز وجبة الإفطار',
+          category: 'nutrition',
+          frequency: 'daily',
+          recommendedTime: 'morning',
+          rationale:
+            'جهّز الفطار واستعد للشغل. الصيام المتقطع: التجهيز منفصل عن التناول، ونافذة الأكل تُضبط يدويًا في الإعدادات.',
+        }),
+        h({
+          name: 'وقت الأسرة والصلاة (محمي)',
+          category: 'relationships',
+          frequency: 'daily',
+          optional: true,
+          recommendedTime: 'evening',
+          rationale:
+            'بعد الشغل الأولوية للبيت والأسرة والصلاة، مع إمكانية الخروج. مساحة محمية — ليست عدّاد إنتاجية، وعدم تسجيلها لا يؤثر على نسبتك ولا يقطع سلسلتك.',
+        }),
       ],
       weeklyHabits: [
-        h({ name: 'Workout', category: 'fitness', frequency: 'weekly', weeklyTarget: 4 }),
-        h({ name: 'Weekly weight check', category: 'health', frequency: 'weekly', weeklyTarget: 1, measurable: true, targetValue: 1, unit: 'check' }),
+        h({
+          name: 'كتابة محتوى',
+          category: 'content',
+          frequency: 'weekly',
+          weeklyTarget: 2,
+          optional: true,
+          recommendedTime: 'evening',
+          rationale:
+            'عند عدم الخروج ووجود طاقة: 20–30 دقيقة. اختياري مرتين–ثلاث أسبوعيًا، وليس التزامًا يوميًا.',
+        }),
+        h({
+          name: 'تصوير المحتوى (جلسة مجمّعة)',
+          category: 'content',
+          frequency: 'weekly',
+          weeklyTarget: 1,
+          rationale: 'جلسة تصوير واحدة مجمّعة في آخر الأسبوع. اليوم والوقت قابلان للتعديل.',
+        }),
       ],
       milestones: [],
     },

@@ -205,6 +205,7 @@ export function Checkbox({
       </span>
       <span className="min-w-0">
         <span
+          dir="auto"
           className={`block text-sm font-medium ${
             checked
               ? 'text-sage-900 dark:text-white'
@@ -213,7 +214,7 @@ export function Checkbox({
         >
           {label}
         </span>
-        {hint && <span className="block text-xs text-sage-400 dark:text-sage-500">{hint}</span>}
+        {hint && <span dir="auto" className="block text-xs text-sage-400 dark:text-sage-500">{hint}</span>}
       </span>
     </button>
   )

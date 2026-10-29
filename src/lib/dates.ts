@@ -13,7 +13,25 @@ export function fromKey(key: string): Date {
   return new Date(y, m - 1, d)
 }
 
-export function todayKey(): string {
+/**
+ * Today's date key. When an IANA `tz` is given (e.g. "Africa/Cairo"), the day
+ * is resolved in that timezone instead of the device's, so tracking doesn't
+ * roll over at the wrong local midnight. Invalid/absent tz falls back to device.
+ */
+export function todayKey(tz?: string): string {
+  if (tz) {
+    try {
+      // en-CA formats as yyyy-mm-dd, which is exactly our key format.
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date())
+    } catch {
+      // fall through to device-local on an invalid timezone
+    }
+  }
   return toKey(new Date())
 }
 

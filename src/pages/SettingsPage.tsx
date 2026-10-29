@@ -2,16 +2,20 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { useAuth } from '../state/AuthContext'
-import type { Theme } from '../types'
+import type { Schedule, Theme } from '../types'
 import { deleteAccountServer } from '../lib/api'
 import { todayKey } from '../lib/dates'
 import { Button, Field, SectionTitle } from '../components/ui'
+
+const EMPTY_SCHEDULE: Schedule = { preferredTime: 'flexible', availableDays: [0, 1, 2, 3, 4, 5, 6] }
 
 export default function SettingsPage() {
   const { data, saveProfile, deleteAccount } = useData()
   const { signOut, demoMode } = useAuth()
   const navigate = useNavigate()
   const [name, setName] = useState(data?.profile.name ?? '')
+  const [sched, setSched] = useState<Schedule>(data?.profile.schedule ?? EMPTY_SCHEDULE)
+  const [schedMsg, setSchedMsg] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
   const [savedMsg, setSavedMsg] = useState<string | null>(null)
@@ -24,6 +28,12 @@ export default function SettingsPage() {
   const saveName = async () => {
     await saveProfile({ name: name.trim() })
     setSavedMsg('Saved.')
+  }
+
+  const setSchedField = (patch: Partial<Schedule>) => setSched((s) => ({ ...s, ...patch }))
+  const saveSchedule = async () => {
+    await saveProfile({ schedule: sched })
+    setSchedMsg('تم الحفظ.')
   }
 
   const toggleMarketing = async () => {
@@ -87,6 +97,40 @@ export default function SettingsPage() {
           </div>
         </div>
         {savedMsg && <p className="text-sm text-sage-500">{savedMsg}</p>}
+      </section>
+
+      <section className="card space-y-4 p-5">
+        <div className="text-sm font-medium text-sage-700 dark:text-sage-200">المواعيد والتوقيت · Schedule &amp; time</div>
+        <Field label="Timezone" hint="يُستخدم لتحديد بداية يومك (مثال: Africa/Cairo).">
+          <input
+            className="field"
+            value={sched.timezone ?? ''}
+            placeholder="Africa/Cairo"
+            onChange={(e) => setSchedField({ timezone: e.target.value })}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="الاستيقاظ · Wake">
+            <input type="time" className="field" value={sched.wakeTime ?? ''}
+              onChange={(e) => setSchedField({ wakeTime: e.target.value })} />
+          </Field>
+          <Field label="النوم · Sleep">
+            <input type="time" className="field" value={sched.sleepTime ?? ''}
+              onChange={(e) => setSchedField({ sleepTime: e.target.value })} />
+          </Field>
+        </div>
+        <Field label="نافذة الأكل (صيام متقطع) — اختيارية" hint="اتركها فارغة لو لا تنطبق.">
+          <div className="grid grid-cols-2 gap-3">
+            <input type="time" className="field" value={sched.eatingWindowStart ?? ''}
+              onChange={(e) => setSchedField({ eatingWindowStart: e.target.value })} />
+            <input type="time" className="field" value={sched.eatingWindowEnd ?? ''}
+              onChange={(e) => setSchedField({ eatingWindowEnd: e.target.value })} />
+          </div>
+        </Field>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={saveSchedule}>Save schedule</Button>
+          {schedMsg && <span className="text-sm text-sage-500">{schedMsg}</span>}
+        </div>
       </section>
 
       <section className="card space-y-3 p-5">

@@ -23,7 +23,15 @@ export default function Landing() {
   }, [])
 
   const start = () => {
+    // Generic "Build My Plan" path — make sure no preset is carried over.
+    sessionStorage.removeItem('byr_preset')
     track('onboarding_started')
+    navigate(user ? '/onboarding' : '/auth')
+  }
+
+  const startWithPreset = (id: string) => {
+    sessionStorage.setItem('byr_preset', id)
+    track('preset_selected', { preset: id })
     navigate(user ? '/onboarding' : '/auth')
   }
 
@@ -93,13 +101,13 @@ export default function Landing() {
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {PRESETS.map((p) => (
-            <div key={p.id} className="card p-4">
+            <div key={p.id} className="card flex flex-col p-4">
               <div className="mb-1 flex items-center gap-2">
                 <span className="text-lg">{p.emoji}</span>
                 <span className="font-medium text-sage-900 dark:text-white">{p.title}</span>
               </div>
               <p className="mb-3 text-sm text-sage-500 dark:text-sage-400">{p.description}</p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="mb-3 flex flex-wrap gap-1.5">
                 {[...p.plan.dailyHabits, ...p.plan.weeklyHabits].slice(0, 4).map((h) => (
                   <span
                     key={h.name}
@@ -109,6 +117,12 @@ export default function Landing() {
                   </span>
                 ))}
               </div>
+              <button
+                onClick={() => startWithPreset(p.id)}
+                className="btn-ghost mt-auto self-start text-sm text-sage-700 dark:text-sage-200"
+              >
+                Start with this routine →
+              </button>
             </div>
           ))}
         </div>

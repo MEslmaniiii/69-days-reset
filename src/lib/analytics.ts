@@ -14,6 +14,8 @@ export type AnalyticsEvent =
   | 'plan_accepted'
   | 'habit_completed'
   | 'weekly_review_completed'
+  | 'preset_selected'
+  | 'light_day_toggled'
   | 'signup'
 
 /** Capture UTM + referrer once, the first time the user lands. */

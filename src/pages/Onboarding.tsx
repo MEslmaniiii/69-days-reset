@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import type { CountryCode } from 'libphonenumber-js'
 import {
   GOAL_CATEGORIES,
+  type GeneratedPlan,
   type Habit,
   type HabitCategory,
   type Milestone,
@@ -18,7 +19,20 @@ import { COUNTRIES, DEFAULT_COUNTRY, validatePhone } from '../lib/phone'
 import { BRAND, DEFAULT_CAMPAIGN, PRIVACY_POLICY_VERSION, defaultCampaignStart } from '../lib/config'
 import { loadUtm, track } from '../lib/analytics'
 import { generatePlan } from '../lib/api'
+import { presetById } from '../lib/presets'
 import { newId } from '../data/repo'
+
+const DEFAULT_TIMEZONE = 'Africa/Cairo'
+
+/** A preset chosen on the landing page ("Start with this routine"), if any. */
+function selectedPreset() {
+  try {
+    const id = sessionStorage.getItem('byr_preset')
+    return id ? presetById(id) : undefined
+  } catch {
+    return undefined
+  }
+}
 import { todayKey } from '../lib/dates'
 import { Button, Field, Pill, Spinner } from '../components/ui'
 import HabitListEditor from '../components/HabitEditor'
@@ -91,13 +105,28 @@ export default function Onboarding() {
   const { data, createProfile, setGoals, setHabits, setMilestones, saveProfile } = useData()
   const navigate = useNavigate()
 
+  // A routine preset chosen on the landing page (optional).
+  const preset = useMemo(() => selectedPreset(), [])
+
   const [step, setStep] = useState(0)
   // form state
   const [name, setName] = useState('')
   const [country, setCountry] = useState(DEFAULT_COUNTRY)
   const [phoneNat, setPhoneNat] = useState('')
   const [bio, setBio] = useState('')
-  const [goals, setGoalsState] = useState<OnbGoal[]>([])
+  const [goals, setGoalsState] = useState<OnbGoal[]>(() => {
+    if (!preset) return []
+    // Pre-select the goal categories the preset's routine covers (editable).
+    const cats = Array.from(
+      new Set([...preset.plan.dailyHabits, ...preset.plan.weeklyHabits].map((hh) => hh.category))
+    )
+    return cats.slice(0, 6).map((c) => ({
+      id: newId(),
+      category: c,
+      title: GOAL_CATEGORIES.find((g) => g.key === c)?.label ?? c,
+      details: {},
+    }))
+  })
   const [customTitle, setCustomTitle] = useState('')
   const [schedule, setSchedule] = useState<Schedule>({
     preferredTime: 'morning',
@@ -106,6 +135,9 @@ export default function Onboarding() {
     sleepTime: '',
     workStart: '',
     workEnd: '',
+    timezone: DEFAULT_TIMEZONE,
+    eatingWindowStart: '',
+    eatingWindowEnd: '',
   })
   const [privacyOk, setPrivacyOk] = useState(false)
   const [marketingOk, setMarketingOk] = useState(false)
@@ -200,14 +232,21 @@ export default function Onboarding() {
           createdAt: profile.createdAt,
         }))
       )
-      const plan = await generatePlan({
-        bio: bio.trim(),
-        goals: goals.map((g) => ({ title: g.title, category: g.category, details: g.details })),
-        schedule,
-        campaignEnd: profile.campaignEnd,
-        today: todayKey(),
-      })
-      track('plan_generated', { goals: goals.length }, user!.id)
+      let plan: GeneratedPlan
+      if (preset) {
+        // "Start with this routine" — use the preset plan directly (editable in review).
+        plan = preset.plan
+        track('plan_generated', { goals: goals.length, preset: preset.id }, user!.id)
+      } else {
+        plan = await generatePlan({
+          bio: bio.trim(),
+          goals: goals.map((g) => ({ title: g.title, category: g.category, details: g.details })),
+          schedule,
+          campaignEnd: profile.campaignEnd,
+          today: todayKey(schedule.timezone),
+        })
+        track('plan_generated', { goals: goals.length }, user!.id)
+      }
       let i = 0
       setPlanHabits([
         ...plan.dailyHabits.map((p) => proposedToHabit(p, i++, profile.createdAt)),
@@ -243,6 +282,11 @@ export default function Onboarding() {
       await setHabits(cleaned)
       await setMilestones(planMilestones)
       await saveProfile({ onboardingComplete: true })
+      try {
+        sessionStorage.removeItem('byr_preset')
+      } catch {
+        // ignore storage errors
+      }
       track('onboarding_completed', {}, user!.id)
       track('plan_accepted', { habits: cleaned.length }, user!.id)
       navigate('/app', { replace: true })
@@ -498,6 +542,22 @@ export default function Onboarding() {
                 onChange={(e) => setSchedule({ ...schedule, workEnd: e.target.value })} />
             </Field>
           </div>
+          <Field label="Timezone" hint="Used to decide when your day rolls over.">
+            <input
+              className="field"
+              value={schedule.timezone ?? ''}
+              placeholder="e.g. Africa/Cairo"
+              onChange={(e) => setSchedule({ ...schedule, timezone: e.target.value })}
+            />
+          </Field>
+          <Field label="Eating window (optional)" hint="For intermittent fasting — leave blank if not applicable. You can set this later.">
+            <div className="grid grid-cols-2 gap-3">
+              <input type="time" className="field" value={schedule.eatingWindowStart}
+                onChange={(e) => setSchedule({ ...schedule, eatingWindowStart: e.target.value })} />
+              <input type="time" className="field" value={schedule.eatingWindowEnd}
+                onChange={(e) => setSchedule({ ...schedule, eatingWindowEnd: e.target.value })} />
+            </div>
+          </Field>
           <Field label="Preferred habit time">
             <div className="grid grid-cols-4 gap-2">
               {(['morning', 'afternoon', 'evening', 'flexible'] as TimeOfDay[]).map((t) => (
