@@ -3,7 +3,6 @@ import { AppProvider, useApp } from './state/AppContext'
 import { Dashboard } from './components/Dashboard'
 import { WorkoutView } from './components/WorkoutView'
 import { WalkingView } from './components/WalkingView'
-import { QuranView } from './components/QuranView'
 import { NutritionView } from './components/NutritionView'
 import { WeeklyReview } from './components/WeeklyReview'
 import { SettingsView } from './components/SettingsView'
@@ -12,7 +11,6 @@ export type View =
   | 'dashboard'
   | 'workout'
   | 'walking'
-  | 'quran'
   | 'nutrition'
   | 'review'
   | 'settings'
@@ -21,7 +19,6 @@ const NAV: { id: View; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Today', icon: 'M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z' },
   { id: 'workout', label: 'Workout', icon: 'M6 7v10M18 7v10M3 9h3v6H3zM18 9h3v6h-3zM6 12h12' },
   { id: 'walking', label: 'Walking', icon: 'M13 5a2 2 0 100-4 2 2 0 000 4zM9 22l2-6 2 2v4M11 10l3-2 2 3 2 1M9 22l-1-7 3-3' },
-  { id: 'quran', label: 'Quran', icon: 'M4 5a2 2 0 012-2h12v16H6a2 2 0 00-2 2zM4 19h14M9 7h6' },
   { id: 'nutrition', label: 'Nutrition', icon: 'M7 3c-2 2-3 5-3 8a4 4 0 008 0c0-3-1-6-5-8zM12 21V11M15 4a3 3 0 00-3 3M16 9a3 3 0 01-3 3' },
   { id: 'review', label: 'Review', icon: 'M9 11l3 3 7-7M3 5h12M3 12h6M3 19h9' },
   { id: 'settings', label: 'Settings', icon: 'M10.3 3h3.4l.5 2.3 2 .9 2.1-1 1.7 3-1.6 1.6v2.4l1.6 1.6-1.7 3-2.1-1-2 .9-.5 2.3h-3.4l-.5-2.3-2-.9-2.1 1-1.7-3 1.6-1.6V9.8L3.7 8.2l1.7-3 2.1 1 2-.9z' },
@@ -66,7 +63,7 @@ function Shell() {
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sage-600 text-white text-sm font-bold">
-              ٦٩
+              ٦٠
             </div>
             <span className="font-semibold text-sage-900 dark:text-white">{settings.challengeName}</span>
           </div>
@@ -91,7 +88,6 @@ function Shell() {
         {view === 'dashboard' && <Dashboard onNavigate={setView} />}
         {view === 'workout' && <WorkoutView />}
         {view === 'walking' && <WalkingView />}
-        {view === 'quran' && <QuranView />}
         {view === 'nutrition' && <NutritionView />}
         {view === 'review' && <WeeklyReview />}
         {view === 'settings' && <SettingsView />}

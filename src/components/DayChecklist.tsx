@@ -8,8 +8,8 @@ const HABIT_HINTS: Partial<Record<keyof Habits, string>> = {
   fajrMosque: 'Prayed Fajr in congregation at the mosque',
   adhkar: 'Morning remembrance between Adhan & Iqamah',
   quranWird: 'Daily Quran reading portion',
-  hifz: 'New memorization',
-  murajaah: 'Reviewed previous memorization',
+  french: 'Studied French today (lesson, app, or practice)',
+  aiLearning: 'Studied or practiced AI today (course, tool, or build)',
 }
 
 export function DayChecklist({
@@ -158,7 +158,7 @@ export function DayChecklist({
         <label className="label">Note for this day</label>
         <textarea
           className="field min-h-[72px] resize-y"
-          placeholder="Low energy today · Great workout · Memorization was difficult…"
+          placeholder="Low energy today · Great workout · French felt tough…"
           value={day.note}
           onChange={(e) => updateDay(dateKey, { note: e.target.value })}
         />

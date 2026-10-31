@@ -42,8 +42,8 @@ export function WeeklyReview() {
           <LabeledBar label="Fajr in mosque" pct={stats.fajr} />
           <LabeledBar label="Workout" pct={stats.workout} />
           <LabeledBar label="Quran Wird" pct={stats.wird} />
-          <LabeledBar label="Memorization (Hifz)" pct={stats.hifz} />
-          <LabeledBar label="Revision (Muraja'ah)" pct={stats.murajaah} />
+          <LabeledBar label="French" pct={stats.french} />
+          <LabeledBar label="Learn AI" pct={stats.aiLearning} />
           <div className="pt-1 border-t border-sage-100 dark:border-white/5">
             <LabeledBar label="Overall routine this week" pct={stats.overall} tone="gold" />
           </div>

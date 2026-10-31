@@ -19,7 +19,6 @@ import {
   waterDone,
   weeklyPct,
 } from '../lib/progress'
-import { getSurah } from '../lib/quran'
 import { walkingTargetForDay } from '../lib/defaults'
 import { prettyDate } from '../lib/dates'
 import { DayChecklist } from './DayChecklist'
@@ -47,8 +46,6 @@ export function Dashboard({ onNavigate }: { onNavigate: (v: View) => void }) {
   const streak = currentStreak(data, settings, today)
   const showNudge = missedYesterday(data, settings, today) && n >= 1
 
-  const q = data.quran
-  const surah = getSurah(q.currentSurah)
   const todaysWorkout = workoutForDate(today, settings.workoutDays)
   const walkTarget = walkingTargetForDay(Math.max(1, n), settings.walkingBaseMinutes)
 
@@ -65,7 +62,8 @@ export function Dashboard({ onNavigate }: { onNavigate: (v: View) => void }) {
           {greeting()}, {settings.name}
         </h1>
         <p className="mt-1 text-sage-500 dark:text-sage-400">
-          {beforeStart && `${settings.challengeName} begins ${prettyDate(settings.startDate)}.`}
+          {beforeStart &&
+            `${settings.challengeName} starts in ${1 - n} ${1 - n === 1 ? 'day' : 'days'} — ${prettyDate(settings.startDate)}.`}
           {afterEnd && `${settings.challengeName} complete. Well done.`}
           {started && !afterEnd && (
             <>
@@ -102,11 +100,10 @@ export function Dashboard({ onNavigate }: { onNavigate: (v: View) => void }) {
         <DayChecklist dateKey={today} detailed />
       </section>
 
-      {/* Today's workout + quran */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="card p-5">
-          <SectionTitle>Today's Workout</SectionTitle>
-          {todaysWorkout ? (
+      {/* Today's workout */}
+      <section className="card p-5">
+        <SectionTitle>Today's Workout</SectionTitle>
+        {todaysWorkout ? (
             <div>
               <div className="font-semibold text-sage-900 dark:text-white">
                 {todaysWorkout.title}
@@ -135,25 +132,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (v: View) => void }) {
               </p>
             </div>
           )}
-        </section>
-
-        <section className="card p-5">
-          <SectionTitle>Today's Quran</SectionTitle>
-          <div className="space-y-1">
-            <div className="text-sm text-sage-500 dark:text-sage-400">Memorizing</div>
-            <div className="font-semibold text-sage-900 dark:text-white">
-              {surah.name}{' '}
-              <span className="font-normal text-sage-400">· from ayah {surah.ayahCount >= q.currentAyah ? q.currentAyah : surah.ayahCount}</span>
-            </div>
-            <p className="text-sm text-sage-600 dark:text-sage-300 mt-1">
-              Target: ~{settings.dailyAyahTarget} new ayat (15–20 min) + review previous (10–15 min).
-            </p>
-          </div>
-          <button className="btn-ghost mt-3 px-0 text-sage-600 dark:text-sage-300" onClick={() => onNavigate('quran')}>
-            Open Quran tracker →
-          </button>
-        </section>
-      </div>
+      </section>
 
       {/* Nutrition card */}
       <NutritionDashCard onNavigate={onNavigate} />
@@ -178,7 +157,9 @@ export function Dashboard({ onNavigate }: { onNavigate: (v: View) => void }) {
           <StatCard label="Days remaining" value={daysRemaining(settings, today)} />
           <StatCard label="Fajr in mosque" value={`${habitPct(data, settings, today, 'fajrMosque')}%`} />
           <StatCard label="Workout" value={`${habitPct(data, settings, today, 'workout')}%`} />
-          <StatCard label="Quran" value={`${quranPct(data, settings, today)}%`} />
+          <StatCard label="Quran Wird" value={`${quranPct(data, settings, today)}%`} />
+          <StatCard label="French" value={`${habitPct(data, settings, today, 'french')}%`} />
+          <StatCard label="AI" value={`${habitPct(data, settings, today, 'aiLearning')}%`} />
           <StatCard label="Overall" value={`${overallPct(data, settings, today)}%`} />
         </div>
       </section>

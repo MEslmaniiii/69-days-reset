@@ -14,7 +14,6 @@ import type {
   DayRecord,
   Habits,
   NutritionChecklist,
-  QuranProgress,
   Settings,
   WeeklyReview,
   WeightEntry,
@@ -32,7 +31,6 @@ interface AppContextValue {
   toggleBonus: (key: string, habit: keyof BonusHabits) => void
   updateDay: (key: string, patch: Partial<DayRecord>) => void
   updateSettings: (patch: Partial<Settings>) => void
-  updateQuran: (patch: Partial<QuranProgress>) => void
   saveReview: (fridayKey: string, review: WeeklyReview) => void
   // Nutrition
   getNutrition: (key: string) => DayNutrition
@@ -118,10 +116,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setData((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }))
   }, [])
 
-  const updateQuran = useCallback((patch: Partial<QuranProgress>) => {
-    setData((prev) => ({ ...prev, quran: { ...prev.quran, ...patch } }))
-  }, [])
-
   const saveReview = useCallback((fridayKey: string, review: WeeklyReview) => {
     setData((prev) => ({
       ...prev,
@@ -196,7 +190,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleBonus,
       updateDay,
       updateSettings,
-      updateQuran,
       saveReview,
       getNutrition,
       toggleNutrition,
@@ -215,7 +208,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleBonus,
       updateDay,
       updateSettings,
-      updateQuran,
       saveReview,
       getNutrition,
       toggleNutrition,

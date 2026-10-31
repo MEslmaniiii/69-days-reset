@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import { useApp } from '../state/AppContext'
-import { SURAHS } from '../lib/quran'
 import type { MealSuggestions, NutritionMode, Theme, Weekday } from '../types'
 import { exportCSV, exportJSON, importJSON } from '../lib/storage'
 import { freshData } from '../lib/defaults'
@@ -17,7 +16,7 @@ const WEEKDAYS: { d: Weekday; label: string }[] = [
 ]
 
 export function SettingsView() {
-  const { data, settings, updateSettings, updateQuran, replaceData } = useApp()
+  const { data, settings, updateSettings, replaceData } = useApp()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
 
@@ -109,58 +108,6 @@ export function SettingsView() {
             })}
           </div>
         </div>
-      </section>
-
-      <section className="card p-5">
-        <SectionTitle sub="These set where the Quran tracker begins.">Quran plan</SectionTitle>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Starting Surah">
-            <select
-              className="field"
-              value={settings.startingSurah}
-              onChange={(e) => updateSettings({ startingSurah: Number(e.target.value) })}
-            >
-              {SURAHS.slice(1).map((s) => (
-                <option key={s.number} value={s.number}>
-                  {s.number}. {s.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Starting Ayah">
-            <input
-              type="number"
-              min={1}
-              className="field"
-              value={settings.startingAyah}
-              onChange={(e) => updateSettings({ startingAyah: Math.max(1, Number(e.target.value)) })}
-            />
-          </Field>
-          <Field label="Daily ayah target">
-            <input
-              type="number"
-              min={1}
-              className="field"
-              value={settings.dailyAyahTarget}
-              onChange={(e) =>
-                updateSettings({ dailyAyahTarget: Math.max(1, Number(e.target.value)) })
-              }
-            />
-          </Field>
-        </div>
-        <button
-          className="btn-ghost mt-3 border border-sage-200 dark:border-white/10"
-          onClick={() =>
-            updateQuran({
-              currentSurah: settings.startingSurah,
-              currentAyah: settings.startingAyah,
-              ayatMemorized: 0,
-              completedSurahs: [],
-            })
-          }
-        >
-          Reset Quran tracker to these start values
-        </button>
       </section>
 
       <section className="card p-5">
