@@ -1,4 +1,4 @@
-// ---- Core domain types for 69 Days Reset ----
+// ---- Core domain types for 60 Days Reset ----
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -22,10 +22,6 @@ export interface Settings {
   endDate: string // ISO yyyy-mm-dd
   /** Which weekdays are workout days */
   workoutDays: Weekday[]
-  // Quran plan
-  startingSurah: number // 1..114
-  startingAyah: number
-  dailyAyahTarget: number
   // Walking
   walkingBaseMinutes: number
   // Nutrition
@@ -46,8 +42,8 @@ export interface Habits {
   adhkar: boolean
   quranWird: boolean
   workout: boolean
-  hifz: boolean
-  murajaah: boolean
+  french: boolean
+  aiLearning: boolean
 }
 
 export interface BonusHabits {
@@ -111,17 +107,6 @@ export interface WeightEntry {
   bodyFatPct?: number
 }
 
-export interface QuranProgress {
-  /** Surah number currently being memorized */
-  currentSurah: number
-  /** Next ayah to memorize within the current surah (1-based) */
-  currentAyah: number
-  /** Total ayat memorized (cumulative counter) */
-  ayatMemorized: number
-  /** Surah numbers fully completed */
-  completedSurahs: number[]
-}
-
 export interface WeeklyReview {
   wentWell: string
   difficult: string
@@ -138,7 +123,6 @@ export interface AppData {
   settings: Settings
   /** keyed by ISO date */
   days: Record<string, DayRecord>
-  quran: QuranProgress
   /** keyed by ISO date of the Friday that week */
   reviews: Record<string, WeeklyReview>
   /** keyed by ISO date */
@@ -151,8 +135,8 @@ export const CORE_HABIT_KEYS: (keyof Habits)[] = [
   'adhkar',
   'quranWird',
   'workout',
-  'hifz',
-  'murajaah',
+  'french',
+  'aiLearning',
 ]
 
 export const HABIT_LABELS: Record<keyof Habits, string> = {
@@ -160,8 +144,8 @@ export const HABIT_LABELS: Record<keyof Habits, string> = {
   adhkar: 'Morning Adhkar',
   quranWird: 'Quran Wird',
   workout: 'Workout',
-  hifz: 'Quran Hifz (memorization)',
-  murajaah: "Muraja'ah (revision)",
+  french: 'French',
+  aiLearning: 'Learn AI',
 }
 
 // Manually-checked nutrition items (water is scored separately from waterMl)

@@ -1,7 +1,10 @@
 import type { AppData, MealSuggestions, Settings } from '../types'
+import { CHALLENGE_NAME, END_DATE, START_DATE } from './config'
 
 // v2 adds the Nutrition system (per-day nutrition, weights, nutrition settings).
-export const DATA_VERSION = 2
+// v3 drops Quran memorization (hifz/muraja'ah + the quran tracker) and the 69-day
+// window in favour of a fixed 60-day run, adding the French & Learn AI habits.
+export const DATA_VERSION = 3
 
 export const DEFAULT_MEAL_SUGGESTIONS: MealSuggestions = {
   breakfast: [
@@ -30,14 +33,11 @@ export const DEFAULT_MEAL_SUGGESTIONS: MealSuggestions = {
 
 export const DEFAULT_SETTINGS: Settings = {
   name: 'Mohamed',
-  challengeName: '69 Days Reset',
-  startDate: '2026-10-24',
-  endDate: '2026-12-31',
+  challengeName: CHALLENGE_NAME,
+  startDate: START_DATE,
+  endDate: END_DATE,
   // Mon, Tue, Thu, Fri — 4 training days with Wed + weekend lighter
   workoutDays: [1, 2, 4, 5],
-  startingSurah: 78, // An-Naba
-  startingAyah: 1,
-  dailyAyahTarget: 4,
   walkingBaseMinutes: 18,
   // Nutrition
   proteinTargetMin: 130,
@@ -55,12 +55,6 @@ export function freshData(settings: Settings = DEFAULT_SETTINGS): AppData {
     version: DATA_VERSION,
     settings,
     days: {},
-    quran: {
-      currentSurah: settings.startingSurah,
-      currentAyah: settings.startingAyah,
-      ayatMemorized: 0,
-      completedSurahs: [],
-    },
     reviews: {},
     weights: {},
   }
@@ -423,18 +417,6 @@ export function walkingTargetForDay(dayNumber: number, base: number): string {
   return `${base + 12}–${base + 17} min`
 }
 
-// ---------------- Memorization method ----------------
-
-export const MEMORIZATION_STEPS = [
-  'Listen to the selected ayat a few times.',
-  'Read each ayah while looking at the Mushaf.',
-  'Repeat the ayah 5–10 times.',
-  'Recite it without looking.',
-  'Connect it to the previous ayah.',
-  'Recite the complete new section together.',
-  "Review yesterday's memorization (muraja'ah).",
-]
-
 // ---------------- Milestones ----------------
 
 export const MILESTONES: { day: number; message: string }[] = [
@@ -443,6 +425,5 @@ export const MILESTONES: { day: number; message: string }[] = [
   { day: 21, message: '21 days — the hardest part is behind you.' },
   { day: 30, message: '30 days — this is becoming part of your identity.' },
   { day: 45, message: '45 days. Steady and deliberate.' },
-  { day: 60, message: '60 days. Almost there — finish strong.' },
-  { day: 69, message: '69 days. You completed the reset.' },
+  { day: 60, message: '60 days. You completed the reset.' },
 ]
