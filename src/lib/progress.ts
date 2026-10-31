@@ -59,7 +59,7 @@ export function dayStatus(
   return 'missed'
 }
 
-/** 1-based day number within the challenge for a given date (can be <1 or >69). */
+/** 1-based day number within the challenge for a given date (can be <1 or >60). */
 export function dayNumber(settings: Settings, key: string): number {
   return diffDays(settings.startDate, key) + 1
 }
@@ -139,18 +139,9 @@ export function habitPct(
   return applicable === 0 ? 0 : Math.round((done / applicable) * 100)
 }
 
-/** Combined Quran completion % (wird + hifz + muraja'ah). */
+/** Quran Wird completion % over elapsed days. */
 export function quranPct(data: AppData, settings: Settings, today: string): number {
-  const keys = elapsedKeys(settings, today)
-  let done = 0
-  for (const key of keys) {
-    const h = data.days[key]?.habits
-    if (h?.quranWird) done++
-    if (h?.hifz) done++
-    if (h?.murajaah) done++
-  }
-  const applicable = keys.length * 3
-  return applicable === 0 ? 0 : Math.round((done / applicable) * 100)
+  return habitPct(data, settings, today, 'quranWird')
 }
 
 /** Current streak of complete days ending at today (or yesterday if today isn't done yet). */
@@ -246,8 +237,8 @@ export interface WeekRangeStats {
   fajr: number
   workout: number
   wird: number
-  hifz: number
-  murajaah: number
+  french: number
+  aiLearning: number
   overall: number
 }
 
@@ -273,8 +264,8 @@ export function weekStats(data: AppData, settings: Settings, today: string): Wee
     fajr: pct('fajrMosque'),
     workout: pct('workout'),
     wird: pct('quranWird'),
-    hifz: pct('hifz'),
-    murajaah: pct('murajaah'),
+    french: pct('french'),
+    aiLearning: pct('aiLearning'),
     overall: aggregate(data, settings, keys).pct,
   }
 }
