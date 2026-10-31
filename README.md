@@ -1,8 +1,8 @@
-# 69 Days Reset
+# 60 Days Reset
 
-A calm, minimal personal habit tracker for a 69-day morning-routine reset
-(**October 24 → December 31, 2026**), built around Fajr in the mosque, Quran,
-exercise, and consistency.
+A calm, minimal personal habit tracker for a 60-day morning-routine reset
+(**November 1 → December 30, 2026**), built around Fajr in the mosque, Quran,
+exercise, learning, and consistency.
 
 Everything runs locally in your browser. No account, no backend — your data is
 stored in `localStorage` and never leaves your machine.
@@ -32,25 +32,25 @@ npm run preview   # serve the production build
 
 ## What's inside
 
-**Daily dashboard** — greeting, `Day N / 69`, today's checklist, today's workout,
-today's Quran target, current streak, and weekly completion — all on one screen.
+**Daily dashboard** — greeting, `Day N / 60`, today's checklist, today's workout,
+current streak, and weekly completion — all on one screen.
 
 **Core habits** (the only ones that affect your score):
 - Fajr prayer in mosque
 - Morning Adhkar
-- Quran Wird
+- Quran Wird (daily reading portion)
 - Workout — *only counts on workout days*
-- Quran Hifz (memorization)
-- Muraja'ah (revision)
+- French
+- Learn AI
 
 **Bonus habit** — "Wrote a script / content idea." Tracked, celebrated, but
 **never** counts against your percentage.
 
-**Progress** — Today / This week / This month / Overall 69‑day bars, plus current
+**Progress** — Today / This week / This month / Overall 60‑day bars, plus current
 streak, best streak, days completed, days remaining, and Fajr / Workout / Quran
-completion rates.
+Wird / French / AI completion rates.
 
-**Calendar heatmap** — every day from Oct 24 → Dec 31, colored Completed /
+**Calendar heatmap** — every day from Nov 1 → Dec 30, colored Completed /
 Partial / Missed / Today / Upcoming. Tap any day to open its checklist and notes.
 
 **Workout** — a 4‑day split (Upper A / Lower A / Upper B / Lower‑Full B) designed
@@ -61,10 +61,9 @@ tutorial link. 30–45 min sessions, every one finishes with a walk.
 **Walking** — conservative Walking Pad progression (15→35 min over the weeks) with
 minutes / distance / steps logging.
 
-**Quran** — current surah & ayah, surah progress bar, ayat memorized, surahs
-completed, hifz & revision streaks, the three activities (Wird / Hifz /
-Muraja'ah), a gentle 7‑step memorization method, and listening guidance. Starts
-in Juz Amma (An‑Naba) and is fully configurable.
+**Learning** — French and Learn AI are core daily habits: check each off on any
+day you studied or practised (a lesson, app, course, tool, or build). Both count
+toward the core score and day completion every day.
 
 **Nutrition** — a simple, sustainable system (not calorie counting). A 7-item
 daily checklist (Breakfast, Work Snack, Balanced Lunch, Dinner, Protein, Water,
@@ -79,14 +78,14 @@ Lifestyle %** (default Core 70% / Nutrition 30%, editable in Settings). A bad
 nutrition day never resets your challenge, and script-writing stays a bonus that
 lowers no score.
 
-**Weekly review** (Fridays) — your week's Fajr / Workout / Wird / Hifz / Revision
-/ Overall percentages, a nutrition adherence breakdown, plus reflection questions
-for both the routine and nutrition (hardest meal, hunger, energy, discomfort).
+**Weekly review** (Fridays) — your week's Fajr / Workout / Wird / French / Learn
+AI / Overall percentages, a nutrition adherence breakdown, plus reflection
+questions for both the routine and nutrition (hardest meal, hunger, energy,
+discomfort).
 
-**Settings** — edit name, dates, workout days, starting surah / ayah, daily ayah
-target, walking minutes, theme, plus nutrition: protein target, water target,
-simple/detailed protein mode, the Core/Nutrition lifestyle weighting, and your
-own editable meal suggestions.
+**Settings** — edit name, dates, workout days, walking minutes, theme, plus
+nutrition: protein target, water target, simple/detailed protein mode, the
+Core/Nutrition lifestyle weighting, and your own editable meal suggestions.
 
 **Your data** — export to **JSON** or **CSV**, import a JSON backup, or reset.
 Refreshing the page never loses anything.
@@ -98,7 +97,7 @@ Refreshing the page never loses anything.
 - Minimal, premium, calm; Islamic‑inspired but modern. Light & dark mode.
 - **Not punishing.** Missing a day is marked, not catastrophic — the app simply
   reminds you: *don't miss twice.* Streak stats are kept, not wiped.
-- Quiet milestone markers (7 / 14 / 21 / 30 / 45 / 60 / 69 days). No coins, no
+- Quiet milestone markers (7 / 14 / 21 / 30 / 45 / 60 days). No coins, no
   badges, no popups.
 - **Rest days don't hurt your score** — workout is only counted on scheduled
   workout days.
@@ -116,12 +115,12 @@ src/
   types.ts                # data model
   state/AppContext.tsx    # app state + actions (auto-persists)
   lib/
+    config.ts             # challenge window + branding (single source of truth)
     dates.ts              # date helpers (Saturday-start weeks)
     progress.ts           # all percentage / streak calculations
-    quran.ts              # 114-surah metadata
     defaults.ts           # settings, workout program, walking plan, milestones
-    storage.ts            # load/save + JSON/CSV export + import
-  components/             # Dashboard, Calendar, Workout, Walking, Quran, Nutrition, Review, Settings …
+    storage.ts            # load/save + migration + JSON/CSV export + import
+  components/             # Dashboard, Calendar, Workout, Walking, Nutrition, Review, Settings …
 ```
 
 ---
@@ -130,7 +129,6 @@ src/
 
 - PWA / "Add to Home Screen" so it opens like a native iPhone app offline.
 - Optional prayer-time API to show today's Fajr time.
-- Reciter audio embeds for the surah you're memorizing.
 - iCloud / file-based sync between your Mac and iPhone (currently per-device).
 - A simple end-of-challenge summary export.
 
